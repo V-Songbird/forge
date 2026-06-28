@@ -1,0 +1,13 @@
+{
+  "name": "forge",
+  "description": "Plans a feature thoroughly before writing any code. Multiple reviewers examine your idea from different angles, then a final check tests the plan against your actual project. You approve before anything gets built.",
+  "license": "MIT",
+  "author": {
+    "name": "Songbird",
+    "email": "songbird@tuta.com"
+  },
+  "homepage": "https://github.com/V-Songbird/claude-plugins/tree/main/forge",
+  "repository": "https://github.com/V-Songbird/claude-plugins",
+  "keywords": ["planning", "review", "pre-code", "feature-design", "adversarial", "expert-analysis"],
+  "hooks": "./hooks/forge-hooks.json"
+}
