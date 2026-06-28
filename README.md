@@ -98,10 +98,7 @@ Describe the feature after invoking the skill. Forge handles the rest.
 
 ---
 
-<details>
-<summary><strong>Skills reference</strong></summary>
-
-<br>
+## Skills
 
 The action skills are orchestrator-invoked — they run as steps in the pipeline and are intentionally absent from the slash-command menu. `/forge` is the only entry point you need.
 
@@ -115,12 +112,9 @@ The action skills are orchestrator-invoked — they run as steps in the pipeline
 | `/forge:dispatch-implementation` | Parallel worktree dispatch for plans with two or more independent steps. |
 | `/forge:build-and-report` | Merges worktrees, bumps the version, runs the build, and emits the final report. |
 
-</details>
+---
 
-<details>
-<summary><strong>Design notes</strong></summary>
-
-<br>
+## Design
 
 **Stack-agnostic.** Forge has no hardcoded build commands, version-bump rules, or test runners. All stack-specific behavior is declared in the consuming project's own `CLAUDE.md`. Forge reads it; you own it.
 
@@ -129,8 +123,6 @@ The action skills are orchestrator-invoked — they run as steps in the pipeline
 **Hooks.** A `UserPromptSubmit` hook tracks the active forge level and emits a one-line routing hint when a prompt shows architectural signals and forge is not already active. A `SubagentStart` hook reinforces citation discipline across every subagent spawned during a forge run.
 
 **Citation chain.** Every expert claim traces to `file:line`. The master plan cites those claims. The adversarial critic verifies against the same files. The implementer works from the same citations. Breaking the chain at any step — a summary without evidence, a plan step without a reference — is caught and rejected before it propagates.
-
-</details>
 
 ---
 
