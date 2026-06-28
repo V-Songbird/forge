@@ -119,9 +119,12 @@ The action skills are orchestrator-invoked — they run as steps in the pipeline
 
 ---
 
-## Installation
+## Install
 
-Clone this repository and register the `forge/` directory as a Claude Code plugin.
+```
+/plugin marketplace add V-Songbird/claude-plugins
+/plugin install forge
+```
 
 ---
 
