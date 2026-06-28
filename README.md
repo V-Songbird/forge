@@ -44,10 +44,7 @@ The expensive failures — missed integration points, wrong assumptions about ho
              Build & report
 ```
 
-> [!IMPORTANT]
-> The approval gate is non-negotiable. Forge never proceeds to writing code without explicit sign-off. This is the point where you redirect, scope down, or cancel — not after implementation has started.
-
-Every claim in the pipeline cites `file:line`. No summaries, no hand-waving, no "we'll figure it out later."
+The approval gate is non-negotiable. Forge never proceeds to writing code without explicit sign-off — this is the point to redirect, scope down, or cancel, not after implementation has started. Every claim in the pipeline cites `file:line`.
 
 ---
 
@@ -61,9 +58,6 @@ Every claim in the pipeline cites `file:line`. No summaries, no hand-waving, no 
 
 [^1]: Requires Claude Code ≥ 2.1.154. Falls back to the full pipeline when the `Workflow` tool is unavailable — never blocks.
 
-> [!TIP]
-> Not sure which level to use? Start with `/forge`. The investigation ladder (below) handles the routing automatically based on what the task actually needs.
-
 ---
 
 ## The investigation ladder
@@ -76,8 +70,7 @@ The orchestrator works through these rungs in order and stops at the first one t
 - [ ] **Crosses two or more architectural areas, or touches a trust boundary?** → `/forge`
 - [ ] **Explicitly thorough or high-stakes?** → `/forge deep`
 
-> [!NOTE]
-> Rungs 2 and 3 are fast passes that often short-circuit the need for expert dispatch entirely. The ladder is what keeps a ten-agent pipeline away from two-line changes.
+Rungs 2 and 3 are fast passes that often short-circuit the need for expert dispatch entirely — the ladder is what keeps a ten-agent pipeline away from two-line changes.
 
 ---
 
