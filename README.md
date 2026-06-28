@@ -12,6 +12,18 @@ The expensive failures — missed integration points, wrong assumptions about ho
 
 ---
 
+## Install
+
+```
+/plugin marketplace add V-Songbird/claude-plugins
+/plugin install forge
+```
+
+> [!TIP]
+> Forge starts working at the next session. No configuration required.
+
+---
+
 ## How it works
 
 ```
@@ -116,15 +128,6 @@ The action skills are orchestrator-invoked — they run as steps in the pipeline
 **Hooks.** A `UserPromptSubmit` hook tracks the active forge level and emits a one-line routing hint when a prompt shows architectural signals and forge is not already active. A `SubagentStart` hook reinforces citation discipline across every subagent spawned during a forge run.
 
 **Citation chain.** Every expert claim traces to `file:line`. The master plan cites those claims. The adversarial critic verifies against the same files. The implementer works from the same citations. Breaking the chain at any step — a summary without evidence, a plan step without a reference — is caught and rejected before it propagates.
-
----
-
-## Install
-
-```
-/plugin marketplace add V-Songbird/claude-plugins
-/plugin install forge
-```
 
 ---
 
