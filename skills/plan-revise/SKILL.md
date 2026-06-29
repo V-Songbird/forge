@@ -55,6 +55,8 @@ The plan from `/forge:master-plan`, revised in place, plus a new section appende
 
 ```
 
+The Critique resolution table stays appended to the plan as its audit trail — it is not the headline. When you present at Step 7, the digest states the critic's net effect in **one plain line** ("critic flagged 2 gaps — both verified against the code and fixed, nothing pushed to you"); it does NOT repeat the table or reprint the plan. The table sits below the plan for the user who wants to check your work.
+
 ## Critical Constraints
 
 - **NEVER blindly accept the critique.** The critic can misread code. Verify every finding by reading the cited file yourself before changing the plan.
@@ -63,18 +65,16 @@ The plan from `/forge:master-plan`, revised in place, plus a new section appende
 - **One canonical plan in the conversation.** Rewrite in place; don't accumulate v1 / v2 / v3. The orchestrator (or downstream implementer) works from the latest plan; ambiguity costs more than the temporary discomfort of overwriting.
 - **Cite `file:line` on every classification.** A "refuted" finding without code evidence is just disagreement; the user (Step 7) needs evidence to trust the resolution.
 
-## Gate metric
+## Gate metric (internal)
 
-After the revision and critique-resolution table are written, output one summary line before moving to step 7:
+Compute these counts from the Critique resolution table — they are an internal signal, NOT a user-facing `resolution:` footer (see the forge skill's *Communication* contract):
 
-```
-resolution: <N> verified-blocking fixed · <M> refuted · <P> escalated to user
-```
+- verified-blocking fixed · refuted · escalated to user
 
-Use the counts from the Critique resolution table. This line is the signal for the user (at step 7) to judge whether the plan absorbed the critic's findings or pushed them into their lap.
+Their substance is what the user actually needs — whether the plan absorbed the critic's findings or pushed them into their lap — and it reaches the user once, in plain language, inside the Step 7 digest: "critic flagged 2 gaps — both verified and fixed, nothing pushed to you", or "1 question escalated to you (below)" when something is genuinely open. Do NOT emit the bare count line.
 
 ## Next Step
 
-After the revision, gate metric, and critique-resolution table are complete, present the plan digest followed by the revised plan to the user for approval. See the `forge` skill's "Step 7 — Approval gate" section for the digest shape (a short, dev-pitched summary of intention, change shape, risks, and verification — no plan machinery) and the canonical `AskUserQuestion` schema (Approve / Revise / Cancel). After approval, the orchestrator routes implementation: `/forge:dispatch-implementation` if the plan has ≥ 2 steps marked `Parallel-friendly: yes`, or in-session implementation otherwise.
+This step is where the user reads the full plan — for the **first and only** time (the forge skill's *Show the plan once*). After the revision, gate metric, and critique-resolution table are complete, present the plan digest first, then the revised plan beneath it, for approval. See the `forge` skill's "Step 7 — Approval gate" section for the digest shape (a short, dev-pitched summary of intention, change shape, risks, and verification — no plan machinery; the critic's effect and gate counts as one plain line each, never `resolution:` / `coverage:` footers) and the canonical `AskUserQuestion` schema (Approve / Revise / Cancel). After approval, the orchestrator routes implementation: `/forge:dispatch-implementation` if the plan has ≥ 2 steps marked `Parallel-friendly: yes`, or in-session implementation otherwise.
 
 Watch for plan growth during revision. The original plan was capped at ≤ 80 lines for typical features; folding in critique findings can push it past that. If the revised plan exceeds the cap, the same triage rules apply — fold one-line-mitigation Risks into step descriptions, drop Open questions that have implicit recommendations, prune step prose to the essentials.

@@ -1,6 +1,6 @@
 {
   "name": "forge",
-  "version": "1.2.0-alpha",
+  "version": "1.3.0-alpha",
   "description": "Investigates your codebase before you build. Parallel domain experts surface integration points and risks, an adversarial critic stress-tests the plan against real code — nothing gets implemented without your sign-off.",
   "license": "MIT",
   "author": {

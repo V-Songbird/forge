@@ -62,6 +62,10 @@ The `forge-expert` agent's system prompt (in `forge/agents/forge-expert.md`) car
 
 For the role catalog (which domains apply to which features, stack-specific tuning), see [references/expert-roles.md](references/expert-roles.md).
 
+## User-facing output
+
+While experts run, the user sees one status line — **"Running \<N\> experts (\<domain · domain · …\>)…"** — and nothing more until the plan. Per the forge skill's *Communication* contract, the dispatch plumbing stays silent: model pins and fallbacks (the `forge-expert` Fable pin falling back to another model), the `forge:`-namespaced `subagent_type`, and any re-dispatch after a failed launch are internal mechanics, not progress updates — never narrate them. The experts' findings feed `/forge:master-plan`; they are not summarized to the user here.
+
 ## Critical Constraints
 
 - **Parallel, not sequential.** All `Agent` calls go in a single tool-use block. Sequential dispatch wastes wall-time and breaks the workflow timing assumptions of `/forge:master-plan`.
