@@ -44,6 +44,10 @@ A single structured critique per the format defined in your system prompt (Block
 
 The subagent's role, tool set, and `maxTurns` are encoded in `../../agents/adversarial-critic.md`; do not duplicate them in the prompt above. The `Agent` tool does NOT accept `name` or `max_turns` at the call site — the harness silently drops both — so do not add them.
 
+## User-facing output
+
+The user sees one status line — **"Critic reviewing the plan against the code…"**. Per the forge skill's *Communication* contract, the dispatch plumbing is silent: the `fable` pin and any fallback when it is unavailable, the single-`Agent`-vs-`Workflow` routing, and the critic's agent ID are internal. The critique itself is consumed by `/forge:plan-revise`, not shown to the user; its outcome reaches the user once, as a single plain line in the Step 7 digest ("critic flagged 2 gaps — both verified and fixed").
+
 ## Critical Constraints
 
 - **Single dispatch.** Splitting the critique across parallel critics produces siloed reports that miss cross-section issues. The critic needs the whole plan in one context.

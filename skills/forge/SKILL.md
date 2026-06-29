@@ -68,6 +68,30 @@ Steps 1, 2, 2.3, 2.5, and 7 run in the main session — orchestrator actions, no
 
 Model rationale: the research subagents (experts, critic) pin `fable` — investigation depth is their purpose, and the pin holds even when the session runs a cheaper model. The synthesis steps (4, 6) inherit the session model so they never age into a downgrade when newer models ship. Implementers stay `sonnet` as a deliberate cost choice — they execute a plan the experts and critic already verified.
 
+## Communication — what reaches the user
+
+Forge is heavy; its output to the user must not be. The pipeline runs many phases, but the user is present for only a few decisions — everything else is work, not communication. Speak in two registers, and let nothing else reach the user. The whole point of the gates is the human's chance to redirect; a user who TL;DRs a wall of process and rubber-stamps has gained nothing from the run.
+
+**Status register — the default between gates.** One short line per phase: present tense, plain developer language, naming *where the run is* — never how the machinery works. A single evolving checklist (one row per phase) is the preferred shape; separate one-liners are the floor.
+
+| Phase | Say this | Not this |
+|-------|----------|----------|
+| Level decision | "Touches 3 areas and auto-edits live data — running the **full** pipeline (experts → plan → critique → your approval)." | the rung-by-rung climb; "Decision: `full`" |
+| Spike | "Checking the riskiest assumption: \<plain sentence\>…" | "Step 2.5 spike"; "blast radius" |
+| Experts | "Running 3 experts (architecture · data · code-insight)…" | dispatch namespacing; model fallbacks |
+| Master plan | "Drafting the plan…" | the plan itself (see *Show the plan once*) |
+| Critic | "Critic reviewing the plan against the code…" | the dispatch mechanics |
+
+**Decision register — only when the user must read or decide.** The *only* place rich formatting (bullets, a callout, one bold decision) earns its place: a spike refutation that stops the run; the Step 7 approval gate (digest + plan + `AskUserQuestion`); any open question escalated for the user's call.
+
+**Silent plumbing — never surface.** Model pins and availability (a Fable-pinned subagent falling back to another model), agent-type namespacing, re-dispatch, retries, tool mechanics, and the `coverage:` / `resolution:` gate counts are internal. Handle them silently. Surface a failure ONLY when it is unrecoverable AND changes what the user should do — then in plain language ("Couldn't reach the experts after two tries — fall back to in-session analysis?"). A subagent dying and being re-dispatched is not a user event.
+
+**Material findings are conclusions, not investigations.** When a spike or expert genuinely reshapes the work — a real bug, a scope that shrank — the user hears the *result* in 1–2 sentences ("Found a real bug while checking the roadmap's claim: the quest lookup matches the display label instead of the map id. Confirmed against the rAthena source — folding the fix into this run."), never the paragraph-by-paragraph trail with `file:line`. The evidence lives in the plan and the subagent reports for whoever wants it.
+
+**Show the plan once.** The user reads the master plan exactly once — final form, at the Step 7 gate. `/forge:master-plan` drafts the plan as the verbatim input to the critic dispatch; it does not render the plan as a user-facing block. `/forge:plan-revise` is the single point where the plan reaches the user, behind the digest. The critic's effect is one plain line in the digest ("critic flagged 2 gaps — both verified against the code and fixed, nothing pushed to you"), not a reprinted plan or an inline resolution table.
+
+The test for any user-facing line: *would a developer who just wants to approve a good plan need this to make that decision?* If not, it belongs in the status register, the plan artifact, or nowhere.
+
 ## Deep mode — Workflow dispatch
 
 Deep mode replaces the standard `Agent` dispatch at steps 3 and 5 with `Workflow` orchestration. Requires Claude Code ≥ 2.1.154 — if the `Workflow` tool is absent, fall back to the full level; never block the pipeline on the tool's availability.
@@ -93,7 +117,7 @@ Skip step 2.5 only when the feature has no risky assumption (pure refactor, well
 
 ## Step 7 — Approval gate
 
-The master plan is built to direct Claude — W-IDs, `file:line` citations, done-when criteria, contract clauses. Presented raw, it trains users to approve without reading. Present in two layers: a short **plan digest** first, then the full plan beneath it.
+The master plan is built to direct Claude — W-IDs, `file:line` citations, done-when criteria, contract clauses. Presented raw, it trains users to approve without reading. This is the run's primary Decision register (see *Communication*) and the one place the user reads the full plan — *Show the plan once* routes everything here. Present in two layers: a short **plan digest** first, then the full plan beneath it. The critic's outcome and the gate counts appear here as one plain digest line each — never as `coverage:` / `resolution:` footers.
 
 Write the digest for a developer who has NOT followed the pipeline — technical terms are fine, plan machinery is not (no W-IDs, no `file:line` lists, no contract-clause numbering). Shape:
 

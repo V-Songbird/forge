@@ -23,6 +23,8 @@ A single markdown plan inside the conversation, capped at **≤ 80 lines for typ
 
 For the full template with field-by-field guidance, see [references/plan-structure.md](references/plan-structure.md).
 
+**This plan is the critic's input, not a user-facing message.** Draft it in conversation context as the verbatim body of the `/forge:critic-review` dispatch; do NOT render it as a standalone block for the user (see the forge skill's *Show the plan once*). The user sees only a status line at this step and reads the full plan once — final form, at Step 7, via `/forge:plan-revise`.
+
 ## Synthesis procedure
 
 1. **Scan `## Findings summary` sections first.** Every expert report opens with a tagged summary. Collect all `conflict:` lines — each one names two locations that need reconciliation and becomes a synthesis task before step descriptions are written. Collect all `touch:` lines to seed the `Files touched` sets. Collect all `assumption:` lines to flag for the critic. Only after this pass, read the prose sections for depth. This order prevents synthesizing a plan on top of an unresolved conflict the experts already flagged.
@@ -39,25 +41,26 @@ For the full template with field-by-field guidance, see [references/plan-structu
 
 - **Hard size cap: ≤ 80 lines for typical 1–3 step features; ≤ 120 lines for 4–5 step features.** If you exceed this, you've leaked implementation work into the plan. Cut prose, drop one-line-mitigation risks, fold Open questions with recommendations into stated decisions.
 - **NEVER write the plan to disk.** Per workflow design, the plan lives in conversation context until `/forge:plan-revise` finishes.
+- **NEVER render the plan as a user-facing block at this step.** It is the critic's verbatim input; the user reads it once, at Step 7. Showing it here creates the double-plan read that *Show the plan once* exists to prevent.
 - **NEVER preserve a Risk row whose mitigation is a one-line code edit.** Those are implementation details. The Risks section is for failure modes the implementer or critic could realistically miss.
 - **NEVER preserve an Open question with a recommendation attached.** If you have an answer, write the answer into the relevant step's description and drop the question.
 - **NEVER write step descriptions as pseudocode.** If your description has numbered substeps, code snippets, or branching logic, you're writing the implementation in the plan. Cut to prose.
 - **NEVER emit the Integration-contract appendix for a single-step or sequential plan.** It is not load-bearing in those cases and just bloats the audit surface.
 - **Cite `file:line` on every claim.** Plans without citations fail the critic and the implementer cannot verify against the code.
 
-## Gate metric
+## Gate metric (internal)
 
-After the plan is emitted, output one summary line:
+Compute these counts from the `## Findings summary` scan and carry them forward to the Step 7 digest. They are an internal continuity signal, NOT a user-facing footer (see the forge skill's *Communication* contract) — do NOT emit a `coverage:` line to the user.
 
-```
-coverage: <N> domains · <M> conflicts resolved · <P> assumptions flagged for critic
-```
+- domains = number of expert reports
+- conflicts = `conflict:` lines reconciled
+- assumptions = `assumption:` lines carried into the plan as critic targets
 
-Use the counts from the `## Findings summary` scan: domains = number of expert reports; conflicts = `conflict:` lines reconciled; assumptions = `assumption:` lines carried into the plan as critic targets.
+Their substance reaches the user once, in plain language, inside the Step 7 digest ("synthesized from 3 expert reviews; 3 cross-domain conflicts resolved").
 
 ## Next Step
 
-After the plan and gate metric are in the conversation, invoke `/forge:critic-review` to dispatch the adversarial critic against it.
+After drafting the plan, emit one status line to the user — **"Plan drafted — \<N\> steps; sending it to the critic."** — and invoke `/forge:critic-review`, passing the plan verbatim. Do NOT render the plan as a user-facing block here: per the forge skill's *Show the plan once*, the plan is the critic's input now and reaches the user once, in final form, at the Step 7 gate via `/forge:plan-revise`.
 
 ## Additional resources
 

@@ -6,6 +6,15 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versio
 
 ## [Unreleased]
 
+## [1.3.0-alpha] — 2026-06-29
+
+### Changed
+
+- **Communication contract — two registers.** The orchestrator now speaks to the user in just two registers: a terse *status register* (one plain line per phase — "Running 3 experts…", "Critic reviewing the plan…") between gates, and a richer *decision register* only when the user must read or decide (a spike refutation, the Step 7 approval gate, an escalated open question). A new "Communication — what reaches the user" section in the main skill defines both, with a per-phase say-this / not-this table. This is the reliability lever: a user who can find the one decision actually makes it, instead of TL;DR-ing a wall of process and rubber-stamping.
+- **Silent plumbing.** Model pins and fallbacks (a Fable-pinned subagent dropping to another model), the `forge:`-namespaced `subagent_type`, re-dispatch, retries, and tool mechanics are now explicitly internal — never narrated. A subagent dying and being re-dispatched is not a user event; failures surface only when unrecoverable and only in plain language. `expert-analysis` and `critic-review` gained "User-facing output" sections enforcing this at the two dispatch points where the narration leaked worst.
+- **Show the plan once.** The user reads the master plan exactly once — final form, at the Step 7 gate. `master-plan` now drafts the plan as the verbatim input to the critic dispatch and emits only a status line; `plan-revise` is the single point where the plan reaches the user, behind the digest. This removes the duplicate full-plan read (draft + revised) the pipeline previously printed.
+- **Gate metrics demoted to internal.** The `coverage:` (`master-plan`) and `resolution:` (`plan-revise`) footers added in 1.2.0 are no longer emitted to the user as machine lines. Their substance — domains reviewed, conflicts resolved, whether the critic's findings were absorbed or pushed to the user — now reaches the user once, in plain language, inside the Step 7 digest. The counts remain an internal continuity signal feeding that digest.
+
 ## [1.2.0-alpha] — 2026-06-27
 
 ### Added
