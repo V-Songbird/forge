@@ -11,6 +11,8 @@ allowed-tools: Read, Grep, SendMessage
 
 Take the critic's report, ground-truth each finding against the code (do not blindly trust either the critic OR the original plan), and produce a strengthened final plan ready for user approval.
 
+> **This skill is the in-session fallback path (Step 6) for when the `Workflow` tool is absent.** In a normal full/deep run, revision is the `forge-plan-reviser` agent, dispatched inside the Forge Workflow pipeline (`skills/forge/references/workflow-pipeline.md`) — same procedure and constraints, but it receives the plan and critique as structured input and has no `SendMessage` back-channel to the critic (it grounds refutations in code alone). The orchestrator invokes this skill only when `Workflow` is unavailable or the pipeline returned `{ error }`; the critic-resume exchange below applies only here.
+
 ## Required Inputs
 
 - The critic's structured report from `/forge:critic-review`, in conversation context.

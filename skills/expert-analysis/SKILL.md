@@ -3,12 +3,14 @@ name: expert-analysis
 description: Dispatches `forge-expert` subagents in parallel — one per chosen domain — to produce focused analyses of a feature against the codebase before a plan is drafted. Each expert covers one domain (architecture, performance, data/state, UI/UX, security, testing, build/tooling — pick from the role catalog) and returns a structured report citing `file:line` evidence.
 when_to_use: Use as Step 3 of the forge workflow, after the user has stated the feature and the orchestrator has gathered baseline codebase context. Do NOT auto-fire; always orchestrator-triggered to keep the workflow sequence intact.
 user-invocable: false
-allowed-tools: Agent, Workflow
+allowed-tools: Agent
 ---
 
 # Expert Analysis Dispatch
 
 Dispatch N domain experts in parallel via the `forge-expert` subagent. The agent's system prompt owns the role archetype, citation discipline, return format, and read-only constraints — this skill provides the per-dispatch parameters and orchestrates the parallel call.
+
+> **This skill is the sequential fallback path (Step 3) for when the `Workflow` tool is absent.** In a normal full/deep run, the experts are dispatched inside the single Forge Workflow pipeline (`skills/forge/references/workflow-pipeline.md`), not here. The orchestrator invokes this skill only when `Workflow` is unavailable or the pipeline returned `{ error }`. Expert selection below is identical to what the pipeline's scout does.
 
 ## Required Inputs
 
@@ -78,22 +80,15 @@ While experts run, the user sees one status line — **"Running \<N\> experts (\
 - **Anchor, don't dump.** Inline 3–5 anchor files with one-phrase reasons, not a long context summary. The `file:line` citation discipline is what produces grounded output; prefatory context dumps just inflate the prompt.
 - **Keep prompts self-contained.** The expert receives only what's in the `prompt` field; it cannot see the orchestrator's prior conversation. Inline the feature text and the anchor list verbatim.
 
-## Deep mode — Workflow dispatch with schema-validated reports
+## Schema-validated path (default)
 
-Use this path INSTEAD of the `Agent` template above when BOTH hold (the forge skill's "Deep mode" section owns the gate):
-
-- The user explicitly asked for a deep / thorough / exhaustive forge run. Depth is a user opt-in, never an orchestrator inference.
-- The `Workflow` tool is available in the session (requires Claude Code ≥ 2.1.154). If it is absent, fall back to the standard `Agent` dispatch above — never block the pipeline on it.
-
-In deep mode, MUST invoke `Workflow` exactly once with the script template in [references/workflow-dispatch.md](references/workflow-dispatch.md), passing one dispatch prompt per chosen domain via `args.dispatches`. Each expert runs as `agentType: "forge-expert"` — same agent, same constraints — but its report is validated against a JSON schema at the tool layer, with automatic retry on malformed output. Expert selection (the cap of 5, the merge rule, user picks) is identical in both modes.
-
-The workflow runs in the background and returns via task notification. WAIT for the result before invoking `/forge:master-plan` — the reports are the plan's input.
+The schema-validated Workflow dispatch this skill used to gate behind "deep mode" is now the default for every full/deep run, and it lives in the whole-pipeline script (`skills/forge/references/workflow-pipeline.md`), not here — experts are one phase of that script, validated against the `EXPERT_REPORT` schema with tool-layer retry. This skill's `Agent` template is the fallback the orchestrator uses only when `Workflow` is absent. There is nothing to invoke from here in a normal run.
 
 ## Next Step
 
-After all experts return, invoke `/forge:master-plan` to synthesize their reports into a single implementation plan.
+After all experts return, invoke `/forge:master-plan` to synthesize their reports into a single implementation plan. (In the Workflow path, that synthesis is the `forge-plan-synthesizer` agent, dispatched by the pipeline script — not this skill.)
 
 ## Additional resources
 
 - For the catalog of expert domains, role-pick guidance, and stack-specific role addenda, see [references/expert-roles.md](references/expert-roles.md)
-- For the deep-mode Workflow script and the expert-report JSON schema, see [references/workflow-dispatch.md](references/workflow-dispatch.md)
+- For the Workflow pipeline script and the `EXPERT_REPORT` schema, see [`skills/forge/references/workflow-pipeline.md`](../forge/references/workflow-pipeline.md)

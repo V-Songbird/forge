@@ -6,6 +6,23 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versio
 
 ## [Unreleased]
 
+## [1.4.0-alpha] — 2026-06-30
+
+### Changed
+
+- **Analysis pipeline (Steps 2–6) is now a single `Workflow` call for full and deep runs.** The orchestrator keeps Steps 1 and 2.3 (the domain-skill scan needs the `Skill` tool, which a Workflow cannot call) in the main session, invokes one Forge Workflow that runs the structural search + reality-check spike (a scout), the parallel experts, plan synthesis, the adversarial critique, an optional refuter panel, and the revision, then resumes at the Step 7 approval gate. Every handoff between phases is schema-validated at the tool layer with automatic retry — no more heading-parsing between steps. The script, schemas, and arg shape live in `skills/forge/references/workflow-pipeline.md`.
+- **Level semantics unified.** `full` and `deep` now share the same Workflow pipeline; `deep` differs only by toggling the refuter-panel Verify phase. The old per-step deep-mode gate (a separate Workflow at Steps 3 and 5) is gone — depth is one boolean passed into the pipeline. `lite` is unchanged (in-session, no Workflow).
+- **The approval gate and spike-stop stay in the main session.** A Workflow cannot call `AskUserQuestion`, so a refuted spike returns `{ spikeRefuted: true }` and halts before experts, and the Step 7 digest + approval run after the Workflow returns — the two points where control deliberately returns to the orchestrator.
+
+### Added
+
+- **`forge-plan-synthesizer` agent** — the Workflow-path equivalent of the `master-plan` skill (Step 4). Receives the expert reports as structured input rather than reading conversation, produces the master plan and gate counts. No model pin (inherits the session model); `effort: high`.
+- **`forge-plan-reviser` agent** — the Workflow-path equivalent of the `plan-revise` skill (Step 6). Receives the plan, critique, and panel verdicts as input, reads the cited code, returns the revised plan with its critique-resolution table. No `SendMessage` back-channel to the critic (grounds refutations in code alone — an accepted tradeoff for running inside a Workflow). No model pin; `effort: high`.
+
+### Removed
+
+- **`skills/expert-analysis/references/workflow-dispatch.md` and `skills/critic-review/references/workflow-panel.md`** — the two per-step deep-mode Workflow scripts, now absorbed into the single `workflow-pipeline.md`. The `expert-analysis`, `critic-review`, `master-plan`, and `plan-revise` skills remain as the sequential fallback path used only when the `Workflow` tool is absent or a pipeline phase errors.
+
 ## [1.3.1-alpha] — 2026-06-30
 
 ### Changed
