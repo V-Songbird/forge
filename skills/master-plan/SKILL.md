@@ -11,6 +11,8 @@ allowed-tools: Read
 
 Synthesize the expert reports into a single, code-grounded plan the user can audit in one sitting. Runs in the main session (no subagent dispatch); the orchestrator does the consolidation directly because the expert reports already live in conversation context.
 
+> **This skill is the in-session fallback path (Step 4) for when the `Workflow` tool is absent.** In a normal full/deep run, synthesis is the `forge-plan-synthesizer` agent, dispatched inside the Forge Workflow pipeline (`skills/forge/references/workflow-pipeline.md`) — same procedure and constraints, but it receives the expert reports as structured input rather than reading them from conversation. The orchestrator invokes this skill only when `Workflow` is unavailable or the pipeline returned `{ error }`.
+
 ## Required Inputs
 
 - Every expert report from the most recent `/forge:expert-analysis` run, present in the conversation transcript. On the standard path these are markdown reports parsed by heading; on the deep-mode path they are structured JSON objects from the Workflow result — the fields map one-to-one onto the report headings, and the synthesis procedure below is identical for both.

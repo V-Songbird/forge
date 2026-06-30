@@ -1,6 +1,6 @@
 ---
 name: forge
-description: Reference for the forge robust-development workflow. Three levels — lite (in-session, no dispatch) for prototypes; full (parallel experts → master plan → adversarial critique → parallel implementation) for cross-cutting features; deep (Workflow dispatch with schema validation and refuter panel) for high-stakes changes. The Investigation Ladder determines which level the task warrants. Heavy-by-design; parallel agents are also the token-cost lever.
+description: Reference for the forge robust-development workflow. Three levels — lite (in-session, no dispatch) for prototypes; full (analysis Steps 2–6 run as one schema-validated Workflow call — scout+spike → experts → plan → critique → revision — then approval and implementation) for cross-cutting features; deep (same Workflow plus a two-refuter panel per Blocking finding) for high-stakes changes. The Investigation Ladder determines which level the task warrants. Heavy-by-design; parallel agents are also the token-cost lever.
 when_to_use: Load when the user requests a non-trivial feature — particularly when they say "use forge", "review this design before I build it", or describe a change that crosses architectural boundaries.
 effort: high
 allowed-tools: AskUserQuestion, TaskCreate, Skill
@@ -17,10 +17,12 @@ The workflow is heavy by design. Dispatching parallel agents is also the token-c
 | Level | Trigger | What runs |
 |-------|---------|-----------|
 | **lite** | `/forge lite` | In-session only. Orchestrator reads anchor files directly, drafts the plan, skips expert and critic dispatch, gets approval, implements in-session. For prototypes and bounded changes where full dispatch costs more than it saves. |
-| **full** | `/forge` | Parallel experts → master plan → adversarial critique → approval → implementation. Default. |
-| **deep** | `/forge deep` | Full pipeline + Workflow dispatch with schema-validated expert reports and a two-refuter panel per Blocking finding. For high-trust-boundary changes, cross-team features, or any run where the user explicitly asks for thoroughness. |
+| **full** | `/forge` | Analysis (Steps 2–6: scout+spike → parallel experts → master plan → adversarial critique → revision) runs in one `Workflow` call with schema-validated handoffs; approval and implementation follow in the main session. Default. |
+| **deep** | `/forge deep` | Same Workflow pipeline, plus a two-refuter panel per Blocking finding in the Critique phase. For high-trust-boundary changes, cross-team features, or any run where the user explicitly asks for thoroughness. |
 
 Level is set at the start of the run and sticks until implementation completes or the user cancels.
+
+**full and deep both run Steps 2–6 as a single `Workflow` call** — see *Workflow pipeline* below. `deep` differs only by toggling the refuter panel. When the `Workflow` tool is absent (Claude Code < 2.1.154), both fall back to the sequential skill path (`/forge:expert-analysis` → `/forge:master-plan` → `/forge:critic-review` → `/forge:plan-revise`); the artifact is identical, so Step 7 onward is unchanged.
 
 ## Investigation Ladder
 
@@ -62,9 +64,9 @@ Rungs 2 and 3 are fast passes that often short-circuit the need for expert dispa
 | 9   | Bump version and run the project build                                       | sonnet               | `/forge:build-and-report`       |
 | 10  | Deliver the final implementation report                                      | sonnet               | `/forge:build-and-report`       |
 
-Steps 1, 2, 2.3, 2.5, and 7 run in the main session — orchestrator actions, not skills. Steps 9 and 10 are produced by a single skill in one pass. Step 8 invokes `/forge:dispatch-implementation` when the plan has ≥ 2 disjoint steps; otherwise the orchestrator implements in-session.
+**full and deep:** Steps 1 and 2.3 run in the main session first (Step 2.3 needs the `Skill` tool, which a Workflow cannot call), then **Steps 2–6 run inside one `Workflow` call** (the `Skill` column maps to agents inside that script, not to in-session skill invocations); the result returns to the main session for Steps 7–10. Steps 9 and 10 are produced by a single skill in one pass. Step 8 invokes `/forge:dispatch-implementation` when the plan has ≥ 2 disjoint steps; otherwise the orchestrator implements in-session. When the `Workflow` tool is absent, Steps 2–6 run as the sequential skill path in the main session instead — same table, same artifact.
 
-**Lite level:** steps 3, 5, and parallel dispatch (8) are skipped. The orchestrator reads anchor files directly in step 2, drafts the plan in-session at step 4, skips the adversarial critique, presents for approval at step 7, and implements in-session.
+**Lite level:** steps 3, 5, and parallel dispatch (8) are skipped, and no Workflow runs. The orchestrator reads anchor files directly in step 2, drafts the plan in-session at step 4, skips the adversarial critique, presents for approval at step 7, and implements in-session.
 
 Model rationale: the research subagents (experts, critic) pin `fable` — investigation depth is their purpose, and the pin holds even when the session runs a cheaper model. The synthesis steps (4, 6) inherit the session model so they never age into a downgrade when newer models ship. Implementers stay `sonnet` as a deliberate cost choice — they execute a plan the experts and critic already verified.
 
@@ -92,14 +94,17 @@ Forge is heavy; its output to the user must not be. The pipeline runs many phase
 
 The test for any user-facing line: *would a developer who just wants to approve a good plan need this to make that decision?* If not, it belongs in the status register, the plan artifact, or nowhere.
 
-## Deep mode — Workflow dispatch
+## Workflow pipeline
 
-Deep mode replaces the standard `Agent` dispatch at steps 3 and 5 with `Workflow` orchestration. Requires Claude Code ≥ 2.1.154 — if the `Workflow` tool is absent, fall back to the full level; never block the pipeline on the tool's availability.
+For full and deep runs, Steps 2–6 are a single `Workflow` call. The orchestrator builds the args from Steps 1 and 2.3, invokes the script once, waits for the task notification, then resumes at Step 7. The full script, schemas, and arg shape live in [references/workflow-pipeline.md](references/workflow-pipeline.md). What the orchestrator must know:
 
-- **Step 3** — `/forge:expert-analysis` dispatches experts through a Workflow script with schema-validated reports. Malformed reports are retried at the tool layer instead of hand-parsed by heading.
-- **Step 5** — `/forge:critic-review` runs the critic plus a two-refuter panel per Blocking finding. Panel verdicts arrive pre-flagged for `/forge:plan-revise`, which verifies the likeliest misfires first.
+- **One invocation, six phases.** Research (scout structural-search + expert-selection + reality-check spike) → Experts (parallel `forge-expert`) → Plan (`forge-plan-synthesizer`) → Critique (`adversarial-critic`) → Verify (deep only — two-refuter panel) → Revise (`forge-plan-reviser`). The synthesis steps run as the `forge-plan-synthesizer` and `forge-plan-reviser` agents — the Workflow-path equivalents of the `/forge:master-plan` and `/forge:plan-revise` skills, since a Workflow cannot invoke a `Skill`.
+- **Schema-validated handoffs.** Every expert report, the critique, and the revised plan are validated at the tool layer with automatic retry — no heading-parsing between steps.
+- **`deep` toggles only the Verify phase.** Pass `deep: true` for `/forge deep`; the refuter panel marks each Blocking finding `panel_refuted` when both lens-distinct refuters ground a refutation, and the reviser verifies those first.
+- **Two returns to the main session.** A refuted spike returns `{ spikeRefuted: true, ... }` and the Workflow halts before experts — surface it as a Decision-register finding and ask the user to re-scope (a Workflow cannot call `AskUserQuestion`). Otherwise it returns `{ plan, gate }` for the Step 7 gate.
+- **Requires Claude Code ≥ 2.1.154.** If the `Workflow` tool is absent, or any phase returns `{ error }`, fall back to the sequential skill path for the remaining steps. Never block the pipeline on the tool's availability.
 
-Everything else is unchanged: same gates, same step 7 approval, same implementation routing.
+Everything after the Workflow is unchanged: same Step 7 approval, same implementation routing, same build.
 
 ## Step 2.3 — Domain-skill scan
 
@@ -112,6 +117,8 @@ Skip step 2.3 only when the project has no `.claude/skills/` directory or no ski
 ## Step 2.5 — Reality-check spike
 
 Before dispatching experts, run a ≤ 30-line spike against the single riskiest assumption — whichever claim, if false, would invalidate the whole design. If the spike refutes the assumption, STOP — surface the refutation to the user with `file:line` evidence and ask for a corrected scope before continuing. Do NOT silently re-scope.
+
+In full and deep runs this happens inside the Workflow's Research phase: the scout runs the spike and a refuted assumption returns `{ spikeRefuted: true }`, halting before experts — the STOP and the user re-scope then happen in the main session. In lite runs the orchestrator runs the spike directly. Either way the rule is the same.
 
 Skip step 2.5 only when the feature has no risky assumption (pure refactor, well-trodden CRUD, well-covered by existing patterns).
 
@@ -169,7 +176,7 @@ The forge plugin is stack-agnostic; the actual version-bump file and build comma
 
 - **Citations required.** Experts, critic, plan — every claim cites `file:line` (or a doc URL for externally-verified claims). Summaries without citations break verification chains.
 - **Single canonical plan in conversation.** `/forge:plan-revise` rewrites in place; the conversation never holds v1 + v2 + v3 simultaneously.
-- **Foreground subagents.** Every `Agent` dispatch is `run_in_background: false`. The next step needs the prior step's output. (Deep-mode `Workflow` runs return via task notification — wait before starting the next step.)
+- **Foreground subagents.** Every `Agent` dispatch (fallback path, plus implementation) is `run_in_background: false` — the next step needs the prior step's output. The full/deep `Workflow` call returns via task notification; wait for it before resuming at Step 7.
 - **Resume when context is an asset; re-dispatch when it misleads.** Decision-only blockers continue the original subagent via `SendMessage`. Fresh dispatch is for changed assignments where stale context is a liability. Fall back to fresh dispatch when `SendMessage` is unavailable.
 - **No persistent state files.** The plan, critique, and expert reports live in conversation context. The workflow does not write `.claude/plans/*.md` or similar.
 - **User approval is non-negotiable.** Step 7 is the gate. The orchestrator never silently proceeds to writing code.

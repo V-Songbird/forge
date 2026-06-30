@@ -1,14 +1,16 @@
 ---
 name: critic-review
-description: Dispatches the `adversarial-critic` subagent (Fable, read-only, bounded maxTurns) against the master plan in conversation context. The critic ground-truths the plan against the actual codebase and returns a structured critique (Blocking / High-priority / Open questions / Findings I couldn't ground in code / Verdict rationale). In deep mode, wraps the critic in a Workflow that adds a two-refuter panel per Blocking finding.
+description: Dispatches the `adversarial-critic` subagent (Fable, read-only, bounded maxTurns) against the master plan in conversation context. The critic ground-truths the plan against the actual codebase and returns a structured critique (Blocking / High-priority / Open questions / Findings I couldn't ground in code / Verdict rationale). This is the sequential fallback path for Step 5 — in a normal full/deep run the critic runs inside the Forge Workflow pipeline instead.
 when_to_use: Use as Step 5 of the forge workflow, immediately after `/forge:master-plan` produces a plan. The critique drives `/forge:plan-revise` in the next step.
 user-invocable: false
-allowed-tools: Agent, Workflow
+allowed-tools: Agent
 ---
 
 # Critic Review Dispatch
 
 Thin dispatcher that hands the master plan to the `adversarial-critic` subagent for ground-truth review against the codebase. The subagent is fixed-role (Fable, read-only, bounded `maxTurns`) and returns a structured critique the orchestrator consumes in `/plan-revise`.
+
+> **This skill is the sequential fallback path (Step 5) for when the `Workflow` tool is absent.** In a normal full/deep run, the critic — and the deep-run refuter panel — run inside the single Forge Workflow pipeline (`skills/forge/references/workflow-pipeline.md`), not here. The orchestrator invokes this skill only when `Workflow` is unavailable or the pipeline returned `{ error }`.
 
 ## Required Inputs
 
@@ -56,22 +58,10 @@ The user sees one status line — **"Critic reviewing the plan against the code�
 - **Do not pre-filter the plan.** Even if you suspect a section is fine, send it. The critic's value is independent verification — not confirming your suspicions.
 - **Subagent prompts cannot use `AskUserQuestion`.** The critic's system prompt already instructs it to file ambiguities as open questions. Do not add an "ask the user if unsure" instruction to the dispatch prompt.
 
-## Deep mode — refuter panel on Blocking findings
+## Refuter panel (deep) — in the Workflow path
 
-Use this path INSTEAD of the `Agent` template above when the forge run is in deep mode (user explicitly asked for a deep / thorough run AND the `Workflow` tool is available — the same gate as `/forge:expert-analysis` deep mode; fall back to the standard `Agent` dispatch when either fails).
-
-MUST invoke `Workflow` exactly once with the script in [references/workflow-panel.md](references/workflow-panel.md). The script:
-
-1. Runs the critic exactly once (`agentType: "adversarial-critic"`, schema-validated critique) — the single-dispatch constraint above still holds; refuters audit individual findings, they are not additional critics.
-2. Dispatches two independent refuters per Blocking finding, each with a distinct lens (identifier accuracy / consequence severity), each prompted to refute the finding against the actual code.
-3. Marks a finding `panel_refuted: true` only when BOTH refuters ground a refutation in `file:line` evidence.
-
-The workflow returns via task notification — WAIT for it, then hand the critique plus the per-finding panel verdicts to `/forge:plan-revise`. Panel-refuted findings arrive pre-flagged, but plan-revise still performs its own read-the-code verification: the panel prioritizes, it does not overrule.
+The deep-run refuter panel — two lens-distinct refuters per Blocking finding, marking `panel_refuted` only when both ground a refutation in `file:line` — now lives in the whole-pipeline script (`skills/forge/references/workflow-pipeline.md`), where it is the optional Verify phase toggled by `deep`, not a separate per-step Workflow. There is nothing to invoke from here for deep mode; this `Agent` dispatch is the no-Workflow fallback, and in that fallback the run behaves as full (no panel) regardless of level.
 
 ## Next Step
 
-After the critic returns, invoke `/forge:plan-revise` to verify each critique and fold the verified ones back into the plan. Keep the critic's agent ID from the dispatch result — when `/forge:plan-revise` refutes a Blocking finding, it resumes the critic via `SendMessage` for a one-exchange confirm-or-withdraw rather than silently overruling.
-
-## Additional resources
-
-- For the deep-mode Workflow script, the critique JSON schema, and the refuter-panel design, see [references/workflow-panel.md](references/workflow-panel.md)
+After the critic returns, invoke `/forge:plan-revise` to verify each critique and fold the verified ones back into the plan. Keep the critic's agent ID from the dispatch result — when `/forge:plan-revise` refutes a Blocking finding, it resumes the critic via `SendMessage` for a one-exchange confirm-or-withdraw rather than silently overruling. (That resume is available only on this in-session fallback path; the Workflow path's `forge-plan-reviser` agent has no back-channel to the critic and grounds its refutations in code alone.)
