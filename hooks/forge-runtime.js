@@ -13,7 +13,6 @@ function getClaudeDir() {
 const statePath = path.join(getClaudeDir(), STATE_FILE);
 
 function setLevel(level) {
-  fs.mkdirSync(path.dirname(statePath), { recursive: true });
   fs.writeFileSync(statePath, level, 'utf8');
 }
 
