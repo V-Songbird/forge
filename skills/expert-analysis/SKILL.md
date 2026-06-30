@@ -19,7 +19,11 @@ Dispatch N domain experts in parallel via the `forge-expert` subagent. The agent
 
 ## Picking experts
 
-Use as many experts as the feature genuinely needs, capped at **5**. The selection is driven by the Step-2 search — every distinct architectural concern surfaced by the search becomes one expert dispatch.
+Use as many experts as the feature genuinely needs, capped at **5**. The selection is driven by the Step-2 search — every distinct architectural concern surfaced by the search becomes one expert dispatch. For each feature, ask three questions to orient the selection:
+
+1. **What's the architectural shape?** Cross-cutting (touches many layers) → architecture is mandatory. Localized → architecture optional.
+2. **What's the primary risk axis?** UI responsiveness / large data → performance. Auth / data exposure / external input → security. Persistence / migration → data/state. Visual or interaction-heavy → UI/UX.
+3. **What's the validation surface?** Behavior-changing → testing expert is worthwhile. Pure refactor → skip testing expert.
 
 - **Cap: 5 experts.** Past 5, reports start to repeat each other and `/forge:master-plan` spends its budget reconciling overlap.
 - **Merge near-duplicates.** If two domains' analyses would overlap by > 50% (e.g. both reasoning about the same dialog state machine), dispatch one combined expert with both lenses in the role line, not two separate experts.
