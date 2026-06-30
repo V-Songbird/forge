@@ -6,6 +6,13 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versio
 
 ## [Unreleased]
 
+## [1.3.1-alpha] — 2026-06-30
+
+### Changed
+
+- **Expert-roles catalog trimmed.** Removed the seven "Role line" archetype blocks from `expert-roles.md` — the file's own comment said they are not spliced into dispatch prompts; the archetypes live in `forge/agents/forge-expert.md`. Moved the three-question expert-selection heuristic (architectural shape / risk axis / validation surface) from the catalog into the `expert-analysis` SKILL.md "Picking experts" section, where the cap, merge-rule, and user-override rules already lived. Removes the only other place those rules were duplicated.
+- **`setLevel` no longer calls `mkdirSync`.** The `~/.claude` directory is guaranteed to exist at Claude Code runtime; the defensive `mkdirSync` was a no-op on every real invocation. Removed.
+
 ## [1.3.0-alpha] — 2026-06-29
 
 ### Changed
